@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+HANDOVER.md
+*.bak-*
+.DS_Store
+.frugal/

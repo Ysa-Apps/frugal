@@ -1,0 +1,11 @@
+Frugal
+Copyright (c) 2026 YSA Apps
+
+Frugal started from save_tokens_skill by RoeeAI
+(https://github.com/roeea2/save_tokens_skill), released under the MIT License.
+The handover-before-clear idea and the session-log audit concept come from that
+project. The code in this repository was rewritten: single cross-platform Python
+program, doctor and init-config commands, bilingual output, and tests.
+
+The original license text is preserved in LICENSE together with the YSA Apps
+notice.
