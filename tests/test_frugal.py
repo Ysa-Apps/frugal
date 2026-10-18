@@ -19,6 +19,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = ROOT / "skills" / "frugal" / "scripts" / "frugal.py"
+if not SCRIPT.exists():  # installed copy: SKILL.md and scripts/ sit next to tests/
+    SCRIPT = ROOT / "scripts" / "frugal.py"
 sys.path.insert(0, str(SCRIPT.parent))
 
 import frugal  # noqa: E402
@@ -517,6 +519,29 @@ class TestHooks(TempProject):
         text = "see `gone/file.py`\nold `legacy/old.py` <!-- frugal-ignore -->\n"
         self.assertEqual(frugal.stale_paths(text, self.root), ["gone/file.py"])
 
+    def test_doctor_honours_ignore_marker_in_html_comment(self):
+        self.write("CLAUDE.md", "Icons list: `vendor_app/icons.txt` <!-- frugal-ignore -->\n")
+        _, out, _ = run_cli("doctor", "--project", str(self.root), env_extra=self.env)
+        self.assertNotIn("vendor_app/icons.txt", out)
+
+    def test_stale_paths_bare_name_found_in_subfolder(self):
+        self.write("security/rules.xml", "<x/>")
+        text = "see `rules.xml` and `nowhere.xml`"
+        self.assertEqual(frugal.stale_paths(text, self.root), ["nowhere.xml"])
+
+    def test_stale_paths_present_on_other_branch(self):
+        git(self.root, "init", "-q", "-b", "main")
+        git(self.root, "config", "user.email", "t@example.com")
+        git(self.root, "config", "user.name", "t")
+        self.write("old/legacy.py", "x = 1")
+        git(self.root, "add", ".")
+        git(self.root, "commit", "-q", "-m", "legacy")
+        git(self.root, "checkout", "-q", "-b", "next")
+        git(self.root, "rm", "-q", "-r", "old")
+        git(self.root, "commit", "-q", "-m", "drop")
+        text = "see `old/legacy.py` and `gone/file.py`"
+        self.assertEqual(frugal.stale_paths(text, self.root), ["gone/file.py"])
+
     def test_handover_template_has_outside_repo_section(self):
         code, _, _ = run_cli("handover", "--write", "--project", str(self.root), env_extra=self.env)
         self.assertEqual(code, 0)
@@ -524,6 +549,11 @@ class TestHooks(TempProject):
 
 
 class TestCli(unittest.TestCase):
+    def test_lang_accepted_after_subcommand(self):
+        code, out, err = run_cli("doctor", "--lang", "es", "--project", str(ROOT))
+        self.assertEqual(code, 0, err)
+        self.assertIn("DIAGNÓSTICO", out)
+
     def test_version(self):
         code, out, _ = run_cli("--version")
         self.assertEqual(code, 0)
@@ -534,7 +564,7 @@ class TestCli(unittest.TestCase):
         self.assertNotEqual(code, 0)
 
     def test_skill_md_frontmatter_is_valid_and_short(self):
-        text = (ROOT / "skills" / "frugal" / "SKILL.md").read_text(encoding="utf-8")
+        text = (SCRIPT.parent.parent / "SKILL.md").read_text(encoding="utf-8")
         fm = frugal.parse_frontmatter(text)
         self.assertEqual(fm["name"], "frugal")
         self.assertTrue(fm["description"])

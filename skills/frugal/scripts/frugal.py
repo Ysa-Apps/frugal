@@ -29,7 +29,7 @@ from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 CHARS_PER_TOKEN = 4  # rough estimate, good enough to rank things
 
@@ -68,8 +68,10 @@ ES = {
     "Run `init-config` to see a safe proposal. Missing: {missing}":
         "No hay reglas que bloqueen la lectura de carpetas de compilación o dependencias para este proyecto ({stacks}). "
         "Ejecuta `init-config` para ver una propuesta segura. Faltan: {missing}",
-    "{path} mentions paths that do not exist (stale instructions are followed with confidence): {names}":
-        "{path} menciona rutas que no existen (Claude sigue con confianza las instrucciones viejas): {names}",
+    "{path} mentions paths that do not exist (stale instructions are followed with confidence): {names}. "
+    "If a path is cited on purpose (it lives outside the project), add `frugal-ignore` to that line.":
+        "{path} menciona rutas que no existen (Claude sigue con confianza las instrucciones viejas): {names}. "
+        "Si una ruta se cita a propósito (está fuera del proyecto), agrega `frugal-ignore` en esa línea.",
     "HANDOVER.md exists but is not in .gitignore. It may contain project details; "
     "run `handover --write` once or add it to .gitignore.":
         "HANDOVER.md existe pero no está en .gitignore. Puede contener detalles del proyecto; "
@@ -480,17 +482,62 @@ KNOWN_FILE_EXTS = {
 IGNORE_MARK = "frugal-ignore"
 
 
+VENDOR_DIRS = {"node_modules", ".git", "dist", "venv", ".venv", "__pycache__", "build", "target"}
+
+
+def name_exists_in_project(name, root):
+    """True when a file or folder with this name exists anywhere in the project
+    (vendor and build folders are not searched)."""
+    for _dirpath, dirnames, filenames in os.walk(root):
+        if name in filenames or name in dirnames:
+            return True
+        dirnames[:] = [d for d in dirnames if d not in VENDOR_DIRS]
+    return False
+
+
+def paths_in_other_branches(root, limit=10):
+    """Files and folders that exist on other local git branches (for example a
+    branch kept for an older release). A CLAUDE.md shared by several branches
+    may cite them on purpose, so they are not stale."""
+    known = set()
+    current = run_git(["rev-parse", "--abbrev-ref", "HEAD"], root)
+    refs = run_git(["for-each-ref", "--format=%(refname:short)", "refs/heads"], root)
+    for ref in (refs or "").splitlines()[:limit]:
+        if not ref or ref == current:
+            continue
+        for name in (run_git(["ls-tree", "-r", "--name-only", ref], root) or "").splitlines():
+            parts = name.split("/")
+            known.add(name)
+            known.add(parts[-1])
+            for i in range(1, len(parts)):
+                known.add("/".join(parts[:i]))
+    return known
+
+
 def stale_paths(text, root):
     """Backticked paths that do not exist. Lines containing `frugal-ignore`
-    (for example in an HTML comment) are skipped, for paths cited on purpose."""
+    (for example in an HTML comment) are skipped, for paths cited on purpose.
+    A bare file name counts as present when it exists anywhere in the project,
+    and any path counts as present when it exists on another local branch."""
     text = "\n".join(l for l in text.splitlines() if IGNORE_MARK not in l)
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.S)
+    root = Path(root)
+    other = None
     missing = []
     for tok in path_like_tokens(text):
         ext = tok.rsplit(".", 1)[-1].lower() if "." in tok else ""
         if not tok.endswith("/") and ext not in KNOWN_FILE_EXTS:
             continue
-        if not (Path(root) / tok.rstrip("/")).exists():
-            missing.append(tok)
+        rel = tok.rstrip("/")
+        if (root / rel).exists():
+            continue
+        if "/" not in rel and name_exists_in_project(rel, root):
+            continue
+        if other is None:
+            other = paths_in_other_branches(root)
+        if rel in other:
+            continue
+        missing.append(tok)
     return missing
 
 
@@ -524,11 +571,12 @@ def cmd_doctor(args):
                 "Keep only what Claude cannot infer from the code (aim for under ~1,000 tokens).",
                 label=label, tokens=human(tokens), lines=lines)))
         if label in ("CLAUDE.md", ".claude/CLAUDE.md"):
-            miss = stale_paths(text_wo_comments, root)
+            miss = stale_paths(text, root)
             if miss:
                 findings.append(("warn", t(
                     "{path} mentions paths that do not exist (stale instructions are followed with "
-                    "confidence): {names}", path=label, names=", ".join(miss[:8]))))
+                    "confidence): {names}. If a path is cited on purpose (it lives outside the "
+                    "project), add `frugal-ignore` to that line.", path=label, names=", ".join(miss[:8]))))
     if not project_claude_found:
         findings.append(("info", t(
             "No CLAUDE.md found in this project. Not an error; add one only for things "
@@ -1282,15 +1330,19 @@ def build_parser():
         prog="frugal", description="Spend fewer tokens in Claude Code without losing quality.")
     ap.add_argument("--version", action="version", version="frugal " + __version__)
     ap.add_argument("--lang", choices=["en", "es"], help="output language (default: auto)")
+    # Also accept --lang after the subcommand (`frugal.py doctor --lang es`).
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--lang", choices=["en", "es"], default=argparse.SUPPRESS,
+                        help="output language (default: auto)")
     sub = ap.add_subparsers(dest="command", required=True)
 
-    d = sub.add_parser("doctor", help="check what loads on every session")
+    d = sub.add_parser("doctor", parents=[common], help="check what loads on every session")
     d.add_argument("--project", default=".")
     d.add_argument("--json", action="store_true")
     d.add_argument("--strict", action="store_true", help="exit 1 when there are warnings")
     d.set_defaults(func=cmd_doctor)
 
-    a = sub.add_parser("audit", help="rank what burned context in past sessions")
+    a = sub.add_parser("audit", parents=[common], help="rank what burned context in past sessions")
     a.add_argument("--project", help="limit to this project directory (default: all)")
     a.add_argument("--sessions", type=int, default=10)
     a.add_argument("--top", type=int, default=10)
@@ -1299,14 +1351,14 @@ def build_parser():
     a.add_argument("--json", action="store_true")
     a.set_defaults(func=cmd_audit)
 
-    h = sub.add_parser("handover", help="print project state, or write HANDOVER.md")
+    h = sub.add_parser("handover", parents=[common], help="print project state, or write HANDOVER.md")
     h.add_argument("--project", default=".")
     h.add_argument("--write", action="store_true", help="write/append HANDOVER.md")
     h.add_argument("--file", default="HANDOVER.md")
     h.add_argument("--no-gitignore", action="store_true")
     h.set_defaults(func=cmd_handover)
 
-    c = sub.add_parser("init-config", help="propose safe read-deny rules (dry run by default)")
+    c = sub.add_parser("init-config", parents=[common], help="propose safe read-deny rules (dry run by default)")
     c.add_argument("--project", default=".")
     c.add_argument("--stack", help="comma-separated stacks to use instead of auto-detect")
     c.add_argument("--global", dest="global_", action="store_true",
@@ -1316,12 +1368,12 @@ def build_parser():
     c.add_argument("--apply", action="store_true", help="write the changes (a backup is made first)")
     c.set_defaults(func=cmd_init_config)
 
-    st = sub.add_parser("status", help="check the latest session's context and whether the hooks are working")
+    st = sub.add_parser("status", parents=[common], help="check the latest session's context and whether the hooks are working")
     st.add_argument("--project", default=".")
     st.add_argument("--threshold", type=int, default=env_int("FRUGAL_THRESHOLD", HOOK_THRESHOLD))
     st.set_defaults(func=cmd_status)
 
-    k = sub.add_parser("hook", help="entry point used by the hooks (not meant to be run by hand)")
+    k = sub.add_parser("hook", parents=[common], help="entry point used by the hooks (not meant to be run by hand)")
     k.add_argument("event", choices=["prompt", "precompact", "start"])
     k.add_argument("--threshold", type=int, default=env_int("FRUGAL_THRESHOLD", HOOK_THRESHOLD),
                    help="warn above this many tokens of context (default 150000)")

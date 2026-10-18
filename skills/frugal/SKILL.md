@@ -45,7 +45,7 @@ Compact with a focus, never bare: `/compact keep <decisions and files>; drop log
 | Block reading of build/vendor folders | `frugal.py init-config` (dry run), then `--apply` |
 | Handover skeleton | `frugal.py handover --write` |
 
-Add `--lang es` for Spanish. Read-only unless `--write` / `--apply` is given.
+Add `--lang es` for Spanish (before or after the command). Read-only unless `--write` / `--apply` is given.
 Run `doctor` or `audit` before suggesting changes; fix the real top offender.
 
 ## More detail (load only when needed)

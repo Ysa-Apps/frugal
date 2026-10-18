@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+- `--lang` now works before or after the subcommand (`frugal.py doctor --lang es` used to fail).
+- `doctor`, stale paths: the `frugal-ignore` marker inside an HTML comment now works (comments were
+  removed before the marker was checked). Fewer false alarms: a bare file name counts as present when
+  it exists anywhere in the project, and any path counts as present when it exists on another local
+  git branch (one CLAUDE.md shared by several release branches). The warning says how to silence a
+  path cited on purpose.
+
 ## 0.2.0 (beta)
 - Automatic mode: `init-config --hooks` installs three hooks (dry run first, backup on apply):
   - UserPromptSubmit: when the context passes 150k tokens (`--threshold` / `FRUGAL_THRESHOLD`),
