@@ -1,5 +1,8 @@
 # Frugal
 
+> Incluye ediciones separadas para Claude Code y Codex. No se deben mezclar:
+> Claude usa `.claude`; Codex usa `AGENTS.md` y la carpeta local de skills.
+
 **Gasta menos tokens en Claude Code sin perder calidad.** Una skill pequeña y una herramienta
 en Python que funciona en Windows, Mac y Linux: muestra qué llena tu contexto, recorta lo que
 se carga en cada sesión y guarda tu avance antes de limpiar una sesión larga.
@@ -76,6 +79,33 @@ python scripts/frugal.py audit --json > despues.json
 ```
 
 Compara `new_token_spend` y `peak_context` en tareas parecidas.
+
+## Edicion para Codex
+
+La version para Codex esta en `skills/codex-frugal/`. Es de proposito general:
+sirve para codigo, documentos, analisis, investigacion, automatizacion y
+trabajo de producto; no esta ligada a Odoo ni a una tecnologia concreta.
+
+Copia el contenido de esa carpeta a:
+
+| Alcance | Carpeta |
+|---|---|
+| Todos tus proyectos (Windows) | `%USERPROFILE%\\.codex\\skills\\codex-frugal` |
+| Todos tus proyectos (macOS/Linux) | `~/.codex/skills/codex-frugal` |
+
+Abre un chat nuevo si la skill no aparece de inmediato. Desde la carpeta de la
+skill, o usando la ruta completa del script:
+
+```
+python scripts/codex_frugal.py doctor --project .
+python scripts/codex_frugal.py audit --project .
+python scripts/codex_frugal.py handover --write --project .
+python scripts/codex_frugal.py report --write --project .
+```
+
+`audit` es una revision estatica de riesgos de contexto. No lee conversaciones
+de Codex, ni mide creditos, consumo de cuenta o tokens internos. El reporte
+documenta observaciones para mejorar la skill con evidencia.
 
 ## Licencia
 

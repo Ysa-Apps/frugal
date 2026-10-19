@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+- Added `skills/codex-frugal`, a Codex-specific edition for general context
+  hygiene across code, documents, analysis, research, automation and product
+  work.
+- Added Codex `doctor`, static `audit`, `handover` and `report` commands.
+- Documented both editions and their separate installation paths. The Codex
+  edition does not inspect Claude logs or claim to measure account credits.
+
 ## 0.2.1
 - `--lang` now works before or after the subcommand (`frugal.py doctor --lang es` used to fail).
 - `doctor`, stale paths: the `frugal-ignore` marker inside an HTML comment now works (comments were

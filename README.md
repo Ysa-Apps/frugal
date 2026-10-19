@@ -1,11 +1,23 @@
 # Frugal
 
-**Spend fewer tokens in Claude Code without losing quality.** A small skill plus one
-cross-platform Python tool that shows what fills your context, trims what loads on
-every session, and saves your progress before you clear a long session.
+**Spend fewer tokens without losing quality.** Frugal includes separate skills
+for Claude Code and Codex. Both encourage smaller, relevant context and a
+useful handover; each keeps its own platform-specific behavior.
 
-Status: **0.1 beta.** Tested with automated tests on Linux (Python 3.11-3.13). Windows and
-macOS checks are listed in [MANUAL_CHECKS.md](MANUAL_CHECKS.md). Feedback welcome.
+Status: **0.3 beta.** The Claude Code skill has automated tests on Linux
+(Python 3.11-3.13). The Codex skill has local syntax and structure validation.
+Windows and macOS checks are listed in [MANUAL_CHECKS.md](MANUAL_CHECKS.md).
+Feedback welcome.
+
+## Editions
+
+| Platform | Folder | What it can inspect |
+|---|---|---|
+| Claude Code | `skills/frugal/` | Claude settings and local session logs |
+| Codex | `skills/codex-frugal/` | Project instructions, installed skills and static context risks |
+
+The editions must not be mixed. Claude Code uses `.claude` settings and hooks;
+Codex uses `AGENTS.md` and Codex's local skills folder.
 
 ## Why
 
@@ -39,6 +51,20 @@ Copy the `skills/frugal` folder to one of:
 
 That is all. Claude loads the skill when you talk about tokens, context, cost, `/clear` or
 `/compact`, and applies the habits on long tasks.
+
+### Codex
+
+Requires Python 3.8+ and Codex. Copy the contents of `skills/codex-frugal/`
+to the local Codex skill folder:
+
+| Scope | Folder |
+|---|---|
+| All your projects (Windows) | `%USERPROFILE%\\.codex\\skills\\codex-frugal` |
+| All your projects (macOS/Linux) | `~/.codex/skills/codex-frugal` |
+
+Start a new Codex chat if the skill does not appear immediately. The Codex
+edition applies the same working habits but does not read Claude logs, install
+hooks, modify settings or claim a measurement of account credits.
 
 ## Use
 
@@ -77,6 +103,21 @@ python scripts/frugal.py audit --json > after.json
 ```
 
 Compare `new_token_spend` and `peak_context` for similar tasks.
+
+### Codex edition
+
+From the `skills/codex-frugal/` folder, or with the full path to its script:
+
+```
+python scripts/codex_frugal.py doctor --project .   # instruction and skill overhead
+python scripts/codex_frugal.py audit --project .    # large files and folders to avoid loading wholesale
+python scripts/codex_frugal.py handover --write --project .
+python scripts/codex_frugal.py report --write --project .
+```
+
+`audit` is a static context-risk review; it does not access Codex conversation
+history, account usage, hidden model tokens or billing. The report records
+observable habits and risks so the skill can improve over repeated use.
 
 ## Supported technologies for `init-config`
 
