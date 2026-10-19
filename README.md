@@ -4,10 +4,16 @@
 for Claude Code and Codex. Both encourage smaller, relevant context and a
 useful handover; each keeps its own platform-specific behavior.
 
-Status: **0.3 beta.** The Claude Code skill has automated tests on Linux
-(Python 3.11-3.13). The Codex skill has local syntax and structure validation.
-Windows and macOS checks are listed in [MANUAL_CHECKS.md](MANUAL_CHECKS.md).
-Feedback welcome.
+**Author:** [Jonathan Leonardo Yncio Salazar](https://github.com/jsleoslzr)
+
+**Publisher and maintainer:** [YSA Apps](https://github.com/Ysa-Apps)
+
+**License:** MIT
+
+Status: **0.3 beta.** Frugal is free and open source. The Claude Code edition
+has automated tests on Linux (Python 3.11-3.13); the Codex edition has local
+syntax, structure and command smoke-test validation. Windows and macOS checks
+are listed in [MANUAL_CHECKS.md](MANUAL_CHECKS.md). Feedback is welcome.
 
 ## Editions
 

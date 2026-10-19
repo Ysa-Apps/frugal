@@ -3,11 +3,19 @@
 > Incluye ediciones separadas para Claude Code y Codex. No se deben mezclar:
 > Claude usa `.claude`; Codex usa `AGENTS.md` y la carpeta local de skills.
 
-**Gasta menos tokens en Claude Code sin perder calidad.** Una skill pequeña y una herramienta
-en Python que funciona en Windows, Mac y Linux: muestra qué llena tu contexto, recorta lo que
-se carga en cada sesión y guarda tu avance antes de limpiar una sesión larga.
+**Autor:** [Jonathan Leonardo Yncio Salazar](https://github.com/jsleoslzr)
 
-Estado: **0.1 beta.** Probada con pruebas automáticas en Linux (Python 3.11 a 3.13). Las
+**Editor y mantenedor:** [YSA Apps](https://github.com/Ysa-Apps)
+
+**Licencia:** MIT
+
+**Usa menos contexto sin perder calidad.** Frugal ofrece skills separadas para
+Claude Code y Codex. Ambas ayudan a mantener sesiones largas enfocadas,
+revisar riesgos de contexto y conservar decisiones importantes entre sesiones.
+
+Estado: **0.3 beta.** Frugal es gratuito y de código abierto. La edición para
+Claude Code tiene pruebas automáticas en Linux (Python 3.11 a 3.13); la edición
+para Codex tiene validación local de sintaxis, estructura y comandos. Las
 comprobaciones para Windows y macOS están en [MANUAL_CHECKS.md](MANUAL_CHECKS.md).
 
 ## Por qué
