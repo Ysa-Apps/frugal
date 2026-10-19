@@ -119,11 +119,16 @@ python scripts/codex_frugal.py doctor --project .   # instruction and skill over
 python scripts/codex_frugal.py audit --project .    # large files and folders to avoid loading wholesale
 python scripts/codex_frugal.py handover --write --project .
 python scripts/codex_frugal.py report --write --project .
+python scripts/codex_frugal.py usage snapshot --plan free --used-percent 62 --days-to-reset 29.98 --record
+python scripts/codex_frugal.py usage history
 ```
 
 `audit` is a static context-risk review; it does not access Codex conversation
-history, account usage, hidden model tokens or billing. The report records
-observable habits and risks so the skill can improve over repeated use.
+history, hidden model tokens or billing. `usage snapshot` records values
+explicitly supplied from Codex Usage settings in a local JSONL file; `usage
+history` compares those local records without contacting an external service.
+The report records observable habits and risks so the skill can improve over
+repeated use.
 
 ## Supported technologies for `init-config`
 

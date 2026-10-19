@@ -8,6 +8,7 @@ account credits. It reports static contributors that a user controls.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 from datetime import datetime
@@ -19,6 +20,10 @@ TEXT_SUFFIXES = {".py", ".xml", ".js", ".ts", ".tsx", ".jsx", ".md", ".rst", ".t
 
 def codex_home():
     return Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+
+
+def usage_history_path():
+    return codex_home() / "frugal" / "usage-history.jsonl"
 
 
 def tokens(path):
@@ -143,17 +148,142 @@ def report(project, write):
     return 0
 
 
+def usage(plan, used_percent, days_to_reset, resets, record=False, task=None, complexity=None, model=None, effort=None, reset_at=None):
+    """Summarize a user-provided Codex allowance snapshot without guessing limits."""
+    print("CODEX FRUGAL USAGE SNAPSHOT")
+    print("This is a local calculation from values you provide; it does not read an account or change limits.")
+    print(f"Plan: {plan or 'not provided'}")
+
+    if used_percent is None:
+        print("Used: not provided")
+    elif not 0 <= used_percent <= 100:
+        print("Used: invalid; provide a value from 0 to 100.")
+        return 2
+    else:
+        print(f"Used: {used_percent:.1f}%")
+        print(f"Remaining: {100 - used_percent:.1f}%")
+
+    if resets is None:
+        print("Available resets: not provided")
+    elif resets < 0:
+        print("Available resets: invalid; provide zero or a positive whole number.")
+        return 2
+    else:
+        print(f"Available resets: {resets}")
+
+    if days_to_reset is None:
+        print("Days until reset: not provided")
+        print("Advice: add --days-to-reset to calculate the remaining daily budget.")
+        return save_usage_snapshot(plan, used_percent, days_to_reset, resets, task, complexity, model, effort, reset_at) if record else 0
+    if days_to_reset <= 0:
+        print("Days until reset: invalid; provide a value greater than zero.")
+        return 2
+
+    print(f"Days until reset: {days_to_reset:.2f}")
+    if used_percent is not None:
+        daily_budget = (100 - used_percent) / days_to_reset
+        print(f"Remaining daily budget: {daily_budget:.2f}% of this allowance per day")
+    print("Pace assessment: unavailable from one snapshot. Compare two snapshots before calling usage high or low.")
+    print("Do not assume a reset repeats monthly; confirm its type and expiry in Codex Usage settings.")
+    if record:
+        return save_usage_snapshot(plan, used_percent, days_to_reset, resets, task, complexity, model, effort, reset_at)
+    return 0
+
+
+def save_usage_snapshot(plan, used_percent, days_to_reset, resets, task, complexity, model, effort, reset_at):
+    """Append one user-supplied usage snapshot to a local-only JSONL history."""
+    record = {
+        "recorded_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "plan": plan or None,
+        "used_percent": used_percent,
+        "days_to_reset": days_to_reset,
+        "available_resets": resets,
+        "reset_at": reset_at or None,
+        "task": task or None,
+        "complexity": complexity or None,
+        "model": model or None,
+        "effort": effort or None,
+    }
+    target = usage_history_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+    print(f"Recorded local snapshot: {target}")
+    return 0
+
+
+def usage_history():
+    """Summarize local snapshots without contacting Codex or an external service."""
+    target = usage_history_path()
+    if not target.is_file():
+        print(f"No local usage history found at: {target}")
+        print("Create one with: usage snapshot ... --record")
+        return 0
+    records = []
+    for line in target.read_text(encoding="utf-8").splitlines():
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            print("Skipped one malformed history record.")
+    if not records:
+        print("Usage history contains no valid snapshots.")
+        return 0
+    print("CODEX FRUGAL USAGE HISTORY")
+    print(f"Local records: {len(records)}")
+    first, last = records[0], records[-1]
+    print(f"First snapshot: {first.get('recorded_at', 'unknown')}")
+    print(f"Latest snapshot: {last.get('recorded_at', 'unknown')}")
+    print(f"Latest plan: {last.get('plan') or 'not provided'}")
+    print(f"Latest usage: {display_percent(last.get('used_percent'))}")
+    print(f"Latest task: {last.get('task') or 'not provided'}")
+    if len(records) < 2:
+        print("Trend: insufficient data. Record a second comparable snapshot after a bounded task.")
+        return 0
+    previous = records[-2]
+    previous_used, latest_used = previous.get("used_percent"), last.get("used_percent")
+    if previous.get("reset_at") != last.get("reset_at") and last.get("reset_at"):
+        print("Trend: new allowance window detected; do not compare it with the previous snapshot.")
+    elif isinstance(previous_used, (int, float)) and isinstance(latest_used, (int, float)):
+        change = latest_used - previous_used
+        print(f"Change since previous snapshot: {change:+.1f} percentage points")
+    else:
+        print("Change since previous snapshot: unavailable because a percentage is missing.")
+    print("Compare only snapshots from the same displayed allowance window.")
+    return 0
+
+
+def display_percent(value):
+    return f"{value:.1f}%" if isinstance(value, (int, float)) else "not provided"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Local context hygiene helper for Codex")
-    parser.add_argument("command", choices=("doctor", "audit", "handover", "report"))
+    parser.add_argument("command", choices=("doctor", "audit", "handover", "report", "usage"))
+    parser.add_argument("usage_action", nargs="?", choices=("snapshot", "history"), help="Usage action; use snapshot or history")
     parser.add_argument("--project", default=".", help="Project folder; defaults to the current folder")
     parser.add_argument("--write", action="store_true", help="Write a handover or report template")
+    parser.add_argument("--plan", help="Plan label shown in Codex Usage settings, such as free or plus")
+    parser.add_argument("--used-percent", type=float, help="Current used allowance percentage from 0 to 100")
+    parser.add_argument("--days-to-reset", type=float, help="Days remaining until the displayed reset time")
+    parser.add_argument("--resets", type=int, help="Number of currently available banked resets")
+    parser.add_argument("--record", action="store_true", help="Append this user-provided snapshot to Frugal's local history")
+    parser.add_argument("--task", help="Short description of the completed or active task")
+    parser.add_argument("--complexity", choices=("easy", "medium", "hard"), help="Your task complexity assessment")
+    parser.add_argument("--model", help="Model selected for the task, if known")
+    parser.add_argument("--effort", help="Reasoning effort selected for the task, if known")
+    parser.add_argument("--reset-at", help="Reset date/time displayed in Codex Usage settings")
     args = parser.parse_args()
     project = Path(args.project).resolve()
     if not project.is_dir():
         parser.error(f"Project folder does not exist: {project}")
     if args.write and args.command not in {"handover", "report"}:
         parser.error("--write is only valid with handover or report")
+    if args.command == "usage":
+        if args.usage_action == "history":
+            return usage_history()
+        if args.usage_action not in {None, "snapshot"}:
+            parser.error("usage supports snapshot or history")
+        return usage(args.plan, args.used_percent, args.days_to_reset, args.resets, args.record, args.task, args.complexity, args.model, args.effort, args.reset_at)
     if args.command == "doctor":
         return doctor(project)
     if args.command == "audit":

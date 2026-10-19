@@ -56,6 +56,7 @@ python $env:USERPROFILE\.codex\skills\codex-frugal\scripts\codex_frugal.py docto
 python $env:USERPROFILE\.codex\skills\codex-frugal\scripts\codex_frugal.py audit
 python $env:USERPROFILE\.codex\skills\codex-frugal\scripts\codex_frugal.py handover
 python $env:USERPROFILE\.codex\skills\codex-frugal\scripts\codex_frugal.py report
+python $env:USERPROFILE\.codex\skills\codex-frugal\scripts\codex_frugal.py usage snapshot --plan free --used-percent 44 --days-to-reset 30 --resets 1
 ```
 
 - `doctor` identifies instruction files and installed skills that may add fixed context.
@@ -64,5 +65,21 @@ python $env:USERPROFILE\.codex\skills\codex-frugal\scripts\codex_frugal.py repor
 - `report --write` creates or appends a concise `CODEX_FRUGAL_REPORT.md`.
   Complete its placeholders with observations from the task; do not use it to
   claim an unmeasured credit reduction.
+- `usage` summarizes a snapshot manually copied from Codex Usage settings. It
+  calculates only the remaining daily budget and does not infer plan limits,
+  inspect account data, consume a reset, or predict future eligibility.
+- Add `--record` to append the supplied snapshot to
+  `%USERPROFILE%\.codex\frugal\usage-history.jsonl`. Include `--task`,
+  `--complexity`, `--model`, and `--effort` whenever they are known. This
+  history stays local and should be used only after several comparable samples.
+
+## Account-aware guidance
+
+Treat Free, Plus, and other plans as data sources, not fixed quota tables.
+When the user wants usage advice, capture the plan label, percentage used,
+reset time, credits, and any available banked reset shown by Codex. Compare at
+least two snapshots before judging the consumption pace. Never assume that a
+banked reset repeats monthly or that every account has the same models,
+credits, or allowance window.
 
 Before recommending configuration changes, run `doctor` or `audit` and address the largest relevant contributor first. Do not alter global Codex settings, plugins, skills, or project ignore rules unless the user explicitly asks.

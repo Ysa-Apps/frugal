@@ -109,10 +109,14 @@ python scripts/codex_frugal.py doctor --project .
 python scripts/codex_frugal.py audit --project .
 python scripts/codex_frugal.py handover --write --project .
 python scripts/codex_frugal.py report --write --project .
+python scripts/codex_frugal.py usage snapshot --plan free --used-percent 62 --days-to-reset 29.98 --record
+python scripts/codex_frugal.py usage history
 ```
 
 `audit` es una revision estatica de riesgos de contexto. No lee conversaciones
-de Codex, ni mide creditos, consumo de cuenta o tokens internos. El reporte
+de Codex, ni mide tokens internos o facturacion. `usage snapshot` registra en
+un archivo local los valores que la persona copia desde Codex Usage; `usage
+history` compara esos registros sin contactar servicios externos. El reporte
 documenta observaciones para mejorar la skill con evidencia.
 
 ## Licencia

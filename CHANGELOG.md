@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.1
+- Added local Codex usage snapshots and history summaries. They record only
+  user-supplied values and never access account credentials, consume resets, or
+  claim hidden token measurements.
+- Added task, complexity, model, effort and reset-time fields for future
+  evidence-based comparisons.
+- History recognizes a changed reset time as a new allowance window instead of
+  treating it as a negative usage change.
+
 ## 0.3.0
 - Added `skills/codex-frugal`, a Codex-specific edition for general context
   hygiene across code, documents, analysis, research, automation and product
