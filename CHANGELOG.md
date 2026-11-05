@@ -1,5 +1,10 @@
-# Changelog
+﻿# Changelog
 
+## 0.3.0 — variante DeepSeek Harness
+- Nuevo `skills/frugal-dsh/`: adaptación para DSH (skill `frugal` 0.1.0).
+- Mide con la proyección de sesión del harness (`~/.dsh/storages/session_projcache/`) en vez de hooks.
+- No hay `/compact` equivalente: el traspaso es `ESTADO.md` + bitácora del proyecto.
+- Sin cambios en `skills/frugal/` (Claude).
 ## 0.2.1
 - `--lang` now works before or after the subcommand (`frugal.py doctor --lang es` used to fail).
 - `doctor`, stale paths: the `frugal-ignore` marker inside an HTML comment now works (comments were
