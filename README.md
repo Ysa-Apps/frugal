@@ -93,3 +93,15 @@ python -m unittest discover -s tests -v
 
 MIT. Based on [save_tokens_skill](https://github.com/roeea2/save_tokens_skill) by RoeeAI
 (MIT); see [NOTICE](NOTICE). Made by YSA Apps.
+
+## Per-agent variants
+
+Same idea, implemented per harness. Each folder installs into its agent's skills path.
+
+| Agent | Folder | Install to |
+|---|---|---|
+| Claude Code | `skills/frugal/` | `~/.claude/skills/frugal/` |
+| DeepSeek Harness (DSH) | `skills/frugal-dsh/` | `~/.dsh/skills/frugal/` |
+
+Both skills are named `frugal` on purpose: the name means the same thing in any agent.
+What changes is the mechanism: Claude uses hooks and `/compact`; DSH reads the harness session projection.

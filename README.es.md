@@ -81,3 +81,15 @@ Compara `new_token_spend` y `peak_context` en tareas parecidas.
 
 MIT. Basado en [save_tokens_skill](https://github.com/roeea2/save_tokens_skill) de RoeeAI (MIT);
 ver [NOTICE](NOTICE). Hecho por YSA Apps.
+
+## Variantes por agente
+
+La misma idea, implementada para cada harness. Cada carpeta se instala en la ruta de skills de su agente.
+
+| Agente | Carpeta | Se instala en |
+|---|---|---|
+| Claude Code | `skills/frugal/` | `~/.claude/skills/frugal/` |
+| DeepSeek Harness (DSH) | `skills/frugal-dsh/` | `~/.dsh/skills/frugal/` |
+
+Las dos skills se llaman `frugal` a propósito: el nombre significa lo mismo en cualquier agente.
+Lo que cambia es el mecanismo: Claude usa hooks y `/compact`; DSH lee la proyección de sesión del harness.
